@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>kayo game</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script type="text/javascript" src="./libs/phaser.min.js"></script>
+	<style type="text/css">
+		body{margin:0;padding: 0;/*background-color: #ffd248*/}
+		#game{position: absolute;width: 100%;height: 100%;}
+		canvas{margin:0 auto;}
+		#pop{position: absolute;z-index: 999;display: none;}
+	</style>
+</head>
+<body>
+	<div id="game"></div>
+	<div id="pop"><h1>hello</h1></div>
+	<script type="text/javascript">
+		var game = new Phaser.Game(720,1024,Phaser.CANVAS,'game');
+		game.Mystates = {};
+    var loadingText;
+    var clickVoice;
+		game.Mystates.boot = {
+  		preload:function(){
+        game.stage.backgroundColor = "#FFFDDD";
+  			if(!game.device.desktop){
+  				game.scale.scaleMode = Phaser.ScaleManager.EXACT_FIT;//全屏适配
+  			}
+  			game.load.image('cover','images/p1-bg.png');
+  		},
+  		create:function(){
+  			game.state.start('load');
+  		}
+  	}
+  	game.Mystates.load = {
+  		preload:function(){
+        //添加首页封面
+        var cover = game.add.image(game.width/2,game.height/2 + 80,'cover');
+        cover.anchor.setTo(0.5,0.5);
+        cover.scale.setTo(0.8,0.8);
+        loadingText = game.add.text(game.width/2, game.height-150, '加载中...', { fill: '#000000',fontSize:48});
+        loadingText.anchor.setTo(0.5,0.5)
+      //加载图片素材
+	    game.load.spritesheet('startbutton', 'images/startGame-btn.png',418,127,2);
+      game.load.image('picInfo','images/p2-bg.png');
+      game.load.spritesheet('avatar','images/avatars.png',230,232,3);
+      game.load.spritesheet('begin-btn','images/begin-btn.png',400,121,2);
+	   	game.load.image('background','images/p2-bg-1.png');
+      game.load.spritesheet('checkBtn','images/check-btn.png',200,190,2);
+      game.load.image('p2-pup','images/p2-pup.png');
+      game.load.image('p3-bg','images/p3-bg.png');
+      game.load.image('vs-icon','images/p2-icon.png');
+      game.load.image('winIcon','images/win-icon.png');
+      game.load.image('loseIcon','images/lose-icon.png');
+      game.load.image('tieIcon','images/tie-icon.png');
+      game.load.spritesheet('gestrue-down-min','images/gestrue-down-min.png',100,122,3);
+      game.load.spritesheet('gestrue-up-min','images/gestrue-up-min.png',100,122,3);
+      game.load.image('userPic', 'images/p3-icon.png');
+	   	game.load.image('close', 'images/close-icon.png');
+	   	game.load.spritesheet('gestrueU','images/gestrue-u.png',186,224,3);
+	   	game.load.spritesheet('gestrueD','images/gestrue-d.png',186,224,3);
+      game.load.image('p2-win-pupop', 'images/p2-win.png');
+      game.load.spritesheet('sure-btn', 'images/sure-btn.png',400,121,2);
+      game.load.audio('clickVoice', 'assets/audio/button-press.mp3');
+	    game.load.onFileComplete.add(function(progress, cacheKey, success, totalLoaded, totalFiles){
+      loadingText.setText("加载" + progress + "%");
+	    },this)
+      game.load.onLoadComplete.add(this.loadComplete, this);
+  		},
+  		create:function(){
+        clickVoice = game.add.audio('clickVoice');
+
+        var startBtn = game.add.button(game.width/2,game.height-100,'startbutton',this.onStartClick,this,1,0,0);
+        startBtn.anchor.setTo(0.5,0.5);
+        startBtn.scale.setTo(0.6,0.6);
+        // startBtn.visible = true;
+  			
+        // game.state.start('play');
+  		},
+      onStartClick:function(){
+        game.state.start('start');
+      },
+  		update:function(){
+  		
+  		},
+      loadComplete:function() {
+      loadingText.visible = false;
+      // startBtn.visible = true;
+      }
+  	}
+  	var checkBtn1;
+  	var checkBtn2;
+  	var checkBtn3;
+  	var popup;
+    var tween = null;
+    var startSwitch = false;
+    var role = '';
+    var winYOu =[
+      {name:'全智贤',skill:[1,1,1,1,1,]},
+      {name:'千颂伊',skill:[1,1,1,1,1,]},
+      {name:'宋明熙',skill:[1,1,1,1,1,]},
+    ]
+
+  	game.Mystates.start = {
+  		create:function(){
+        var playBg = game.add.image(0,0,'background');
+        var picInfo = game.add.image(game.width/2 - 300,20,'picInfo');
+        picInfo.scale.setTo(0.7,0.7);
+        var avatar1 = game.add.image(100,310,'avatar',0);
+        var avatar2 = game.add.image(100,480,'avatar',1);
+        var avatar3 = game.add.image(100,650,'avatar',2);
+        avatar1.scale.setTo(0.7,0.7);
+        avatar2.scale.setTo(0.7,0.7);
+        avatar3.scale.setTo(0.7,0.7);
+        //角色选择按钮
+        checkBtn1 = game.add.button(picInfo.width - 100,340,'checkBtn',this.onAvatarClick1);
+        checkBtn2 = game.add.button(picInfo.width - 100,510,'checkBtn',this.onAvatarClick2);
+        checkBtn3 = game.add.button(picInfo.width - 100,680,'checkBtn',this.onAvatarClick3);
+        checkBtn1.scale.setTo(0.5,0.5);
+        checkBtn2.scale.setTo(0.5,0.5);
+        checkBtn3.scale.setTo(0.5,0.5);
+  		  //开始按键
+  			var playBtn = game.add.button(game.width/2,game.height-100,'begin-btn',this.onPlayClick,this,1,0,0);
+        playBtn.anchor.setTo(0.5,0.5);
+        playBtn.scale.setTo(0.6,0.6);
+        //游戏规则弹窗
+		    popup = game.add.sprite(game.width/2 - 262, 30, 'p2-pup');
+		    // popup.alpha = 0.8;//添加透明效果
+        popup.inputEnabled = true;
+        popup.visible = false;
+		    var pw = popup.width -30;
+
+		    //  And click the close button to close it down again
+		    var closeButton = game.make.sprite(pw, -5, 'close');
+		    closeButton.inputEnabled = true;
+		    closeButton.input.priorityID = 1;
+		    closeButton.input.useHandCursor = true;
+		    closeButton.events.onInputDown.add(this.closeWindow, this);
+
+		    //  Add the "close button" to the popup window image
+		    popup.addChild(closeButton);
+
+		    //  Hide it awaiting a click
+		    popup.scale.set(0.1);
+
+		    setTimeout(function(){
+		    	popup.visible = true;
+		    	openWindow();
+		    },1000);
+  		},
+  		onPlayClick:function(){
+        if(startSwitch){
+          game.state.start('play');
+        }
+  		},
+  		update:function(){
+  			
+  		},
+  		onAvatarClick1:function(avatar){
+  			checkBtn1.frame = 1;
+  			checkBtn2.frame = 0;
+  			checkBtn3.frame = 0;
+        startSwitch = true;
+        role = 0;
+  		},
+  		onAvatarClick2:function(avatar){
+  			checkBtn2.frame = 1;
+  			checkBtn1.frame = 0;
+  			checkBtn3.frame = 0;
+        startSwitch = true;
+        role = 1;
+  		},
+  		onAvatarClick3:function(avatar){
+  			checkBtn3.frame = 1;
+  			checkBtn2.frame = 0;
+  			checkBtn1.frame = 0;
+        startSwitch = true;
+        role = 2;
+  		},
+  		openWindow:function(){
+  		if ((tween !== null && tween.isRunning) || popup.scale.x === 1)
+    	    {
+    	        return;
+    	    }
+	    //  Create a tween that will pop-open the window, but only if it's not already tweening or open
+	    tween = game.add.tween(popup.scale).to( { x: 1, y: 1 }, 1000, Phaser.Easing.Elastic.Out, true);
+  		},
+  		closeWindow:function(){
+  			if (tween && tween.isRunning || popup.scale.x === 0.1)
+	    {
+	        return;
+	    }
+	    //  Create a tween that will close the window, but only if it's not already tweening or closed
+	    // tween = game.add.tween(popup.scale).to( { x: 0.1, y: 0.1 }, 500, Phaser.Easing.Elastic.In, true);
+	       popup.kill();
+  		}
+  	}
+    var gameTimes  = 5;
+    var gameTimesText;
+  	var playStartButton;
+    var gestrueUp;
+    var gestrueDown;
+    var shitouD;
+    var jiandaoD;
+    var buD;
+    var shitouU;
+    var jiandaoU;
+    var buU;
+    var gameSwitch = true;
+    var userScore = 0;
+    var robotScore = 0;
+    var gameOver = false;
+    var userNameText ='';
+    var userWinTimesText = '';
+    var robotNameText = '';
+    var robotWinTimesText = '';
+    var userPic = '';
+    var robotPic = '';
+    var gameRunning = false;
+  	game.Mystates.play = {
+  		create:function(){
+        game.stage.backgroundColor = "#FFF7C2";
+        // var p3Bg = game.add.image(-15,0,'p3-bg');
+        // p3Bg.scale.setTo(1,0.7);
+        game.add.image(0,0,'background');
+        // var vs = game.add.image(game.width/2 - 78,game.height/2 -105,'vs-icon');
+        var tempText = '你还有'+gameTimes+'次机会';
+        gameTimesText = game.add.text(game.width/2, game.height/2, tempText, { fill: '#58342A',fontSize:48});
+        gameTimesText.anchor.setTo(0.5,0.5)
+        userNameText = game.add.text(30, game.height - 40, '玩家 - 小黄人', { fill: '#58342A',fontSize:25});
+        robotWinTimesText = game.add.text(game.width - 180, 20, '胜 0 局', { fill: '#58342A',fontSize:25});
+        robotNameText = game.add.text(30, 15, '玩家 - 全智贤', { fill: '#58342A',fontSize:25});
+        userWinTimesText = game.add.text(game.width - 180, game.height - 40, '胜 0 局', { fill: '#58342A',fontSize:25});
+
+  		 	gestrueUp = game.add.sprite(game.width/2,170,'gestrueU');
+  		 	gestrueDown = game.add.sprite(game.width/2,game.height-170,'gestrueD');
+        gestrueUp.anchor.setTo(0.5,0.5)
+        gestrueDown.anchor.setTo(0.5,0.5)
+        //玩家头型
+        userPic = game.add.sprite(game.width/2 -110,game.height/2 + 40,'userPic');
+        //机器头像
+        robotPic = game.add.sprite(game.width/2 -110 ,game.height/2 - 230 ,'avatar',role);
+        robotPic.scale.setTo(0.8, 0.8);
+        userPic.scale.setTo(0.8, 0.8);
+        // robotPic.angle = 180;
+
+        shitouU = game.add.sprite(30,330,'gestrue-up-min',0);
+        jiandaoU = game.add.sprite(30,190,'gestrue-up-min',1);
+        buU = game.add.sprite(30 ,50,'gestrue-up-min',2);
+
+        shitouD = game.add.sprite(game.width - 140,game.height - 450,'gestrue-down-min',0);
+        jiandaoD = game.add.sprite(game.width - 140,game.height - 310,'gestrue-down-min',1);
+        buD = game.add.sprite(game.width - 140 ,game.height - 170,'gestrue-down-min',2);
+
+        gestrueUp.animations.add('gestrueUp');
+  		 	gestrueDown.animations.add('gestrueDown');
+        gestrueUp.animations.play('gestrueUp',3,true);
+  			gestrueDown.animations.play('gestrueDown',3,true);
+        shitouD.inputEnabled = true;
+        jiandaoD.inputEnabled = true;
+        buD.inputEnabled = true;
+        shitouD.events.onInputDown.add(this.shitouDOnClick, this);
+        jiandaoD.events.onInputDown.add(this.jiandaoDOnClick, this);
+        buD.events.onInputDown.add(this.buDOnClick, this);
+  			// var tween = game.add.tween(this.myPlane).to({y:game.height - 40},1000,Phaser.Easing.Sinusoidal.InOut,true)
+  			// tween.onComplete.add(this.onStart,this);
+        //会员注册提示窗
+        signinPopup = game.add.sprite(game.width/2, game.height/2, 'p2-win-pupop');
+        signinPopup.anchor.setTo(0.5,0.5);
+        signinPopup.scale.setTo(0.8,0.6);
+        signinPopup.inputEnabled = true;
+        signinPopup.visible = false;
+
+        var sipw = (signinPopup.width / 2-280);
+        var siph = (signinPopup.height - 280);
+        var singinCloseButton = game.make.sprite(sipw, siph, 'sure-btn');//加入会员按钮
+        singinCloseButton.anchor.setTo(0.5,0.5);
+        singinCloseButton.inputEnabled = true;
+        singinCloseButton.input.priorityID = 1;
+        singinCloseButton.input.useHandCursor = true;
+        singinCloseButton.events.onInputDown.add(this.goToSignin, this);
+        signinPopup.addChild(singinCloseButton);
+
+        //  Hide it awaiting a click
+        // signinPopup.scale.set(0.1);
+
+        gameWinPopup = game.add.sprite(game.width/2-115, game.height/2-130, 'winIcon');
+        gameWinPopup.inputEnabled = true;
+        gameWinPopup.visible = false;
+
+        var gwcloseButton = game.make.sprite(gameWinPopup.width,0, 'close');
+        gwcloseButton.inputEnabled = true;
+        gwcloseButton.input.priorityID = 1;
+        gwcloseButton.input.useHandCursor = true;
+        gwcloseButton.events.onInputDown.add(this.closeWinPopup, this);
+        gameWinPopup.addChild(gwcloseButton);
+
+        //  Hide it awaiting a click
+        gameWinPopup.scale.set(0.1);
+
+        gameLosePopup = game.add.sprite(game.width/2-115, game.height/2-130, 'loseIcon');
+        gameLosePopup.inputEnabled = true;
+        gameLosePopup.visible = false;
+        var gwcloseButton = game.make.sprite(gameLosePopup.width, 0, 'close');
+        gwcloseButton.inputEnabled = true;
+        gwcloseButton.input.priorityID = 1;
+        gwcloseButton.input.useHandCursor = true;
+        gwcloseButton.events.onInputDown.add(this.closeLosePopup, this);
+        gameLosePopup.addChild(gwcloseButton);
+        //  Hide it awaiting a click
+        gameLosePopup.scale.set(0.1);
+
+        gameTiePopup = game.add.sprite(game.width/2-115, game.height/2-130, 'tieIcon');
+        gameTiePopup.inputEnabled = true;
+        gameTiePopup.visible = false;
+        var gwcloseButton = game.make.sprite(gameTiePopup.width,0, 'close');
+        gwcloseButton.inputEnabled = true;
+        gwcloseButton.input.priorityID = 1;
+        gwcloseButton.input.useHandCursor = true;
+        gwcloseButton.events.onInputDown.add(this.closeTiePopup, this);
+        gameTiePopup.addChild(gwcloseButton);
+        //  Hide it awaiting a click
+        gameTiePopup.scale.set(0.1);
+
+  		},
+  		update:function(){
+  		
+  		},
+      goToSignin:function(){
+        console.log('goto signin');
+        // window.location.href = "http://www.baidu.com";
+      },
+      iconAnimation:function(){
+        game.add.tween(gestrueDown).to({y:'-200'},500,Phaser.Easing.Sinusoidal.InOut,true)
+          game.add.tween(userPic).to({y:'+250'},500,Phaser.Easing.Sinusoidal.InOut,true)
+          game.add.tween(gestrueUp).to({y:'+200'},500,Phaser.Easing.Sinusoidal.InOut,true)
+          game.add.tween(robotPic).to({y:'-230'},500,Phaser.Easing.Sinusoidal.InOut,true)
+        // tween.onComplete.add(this.onStartClick(),this);
+      },
+      iconAnimationClear:function(){
+       game.add.tween(gestrueDown).to({x:game.width/2,y:game.height-170},500,Phaser.Easing.Sinusoidal.InOut,true)
+          game.add.tween(userPic).to({x:game.width/2 -110,y:game.height/2 + 40},500,Phaser.Easing.Sinusoidal.InOut,true)
+          game.add.tween(gestrueUp).to({x:game.width/2,y:170},500,Phaser.Easing.Sinusoidal.InOut,true)
+          game.add.tween(robotPic).to({x:game.width/2 -110 ,y:game.height/2 - 230 },500,Phaser.Easing.Sinusoidal.InOut,true)
+      },
+      signinCloseWindow:function(){//关闭会员注册提示窗口事件
+        signinPopup.visible = false;
+      },
+       openTiePopup:function(){
+        console.log('openWindow');
+      game.add.tween(gameTiePopup.scale).to( { x: 1, y: 1 }, 1000, Phaser.Easing.Elastic.Out, true);
+      gameTiePopup.visible = true;
+      gameSwitch = false;
+      },
+      closeTiePopup:function(){
+        clickVoice.play();//点击音效
+      if (tween && tween.isRunning || gameTiePopup.scale.x === 0.1)
+      {
+          return;
+      }
+      game.add.tween(gameTiePopup.scale).to( { x: 0.1, y: 0.1 }, 1000, Phaser.Easing.Elastic.Out, true);
+        gameTiePopup.visible = false;
+        gameSwitch = true;
+        gestrueUp.animations.play('gestrueUp',3,true);
+        gestrueDown.animations.play('gestrueDown',3,true);
+        this.iconAnimationClear();
+        gameTimes --;
+        gameTimesText.text = "你还有 " + gameTimes + " 次机会";
+        console.log('还能玩'+gameTimes);
+        gameRunning = false;
+      },
+       openLosePopup:function(){
+        console.log('openWindow');
+      game.add.tween(gameLosePopup.scale).to( { x: 1, y: 1 }, 1000, Phaser.Easing.Elastic.Out, true);
+      gameLosePopup.visible = true;
+      gameSwitch = false;
+      },
+      closeLosePopup:function(){
+        clickVoice.play();//点击音效
+      if (tween && tween.isRunning || gameLosePopup.scale.x === 0.1)
+      {
+          return;
+      }
+      game.add.tween(gameLosePopup.scale).to( { x: 0.1, y: 0.1 }, 1000, Phaser.Easing.Elastic.Out, true);
+        gameLosePopup.visible = false;
+        gameSwitch = true;
+        gestrueUp.animations.play('gestrueUp',3,true);
+        gestrueDown.animations.play('gestrueDown',3,true);
+        this.iconAnimationClear();
+        gameTimes --;
+        gameTimesText.text = "你还有 " + gameTimes + " 次机会";
+        console.log('还能玩'+gameTimes);
+        gameRunning = false;
+      },
+       openWinPopup:function(){
+        console.log('openWindow');
+      game.add.tween(gameWinPopup.scale).to( { x: 1, y: 1 }, 1000, Phaser.Easing.Elastic.Out, true);
+      gameWinPopup.visible = true;
+      gameSwitch = false;
+      },
+      closeWinPopup:function(){
+        clickVoice.play();//点击音效
+      if (tween && tween.isRunning || gameWinPopup.scale.x === 0.1)
+      {
+          return;
+      }
+      game.add.tween(gameWinPopup.scale).to( { x: 0.1, y: 0.1 }, 1000, Phaser.Easing.Elastic.Out, true);
+        gameWinPopup.visible = false;
+        gameSwitch = true;
+        gestrueUp.animations.play('gestrueUp',3,true);
+        gestrueDown.animations.play('gestrueDown',3,true);
+        this.iconAnimationClear();
+        gameTimes --;
+        gameTimesText.text = "你还有 " + gameTimes + " 次机会";
+        console.log('还能玩'+gameTimes);
+        gameRunning = false;
+      },
+  		onStartClick:function(){
+  			console.log('start');
+  		},
+      refreshScore:function(){
+        userWinTimesText.text = "胜 " + userScore +" 局" ;
+        robotWinTimesText.text = "胜 " + robotScore +" 局" ;
+      },
+      gameOver:function(){
+        if(confirm("你已经没有机会啦! 不服？点击确定，再给你个机会"))
+        {//如果是true 
+            gameTimes = 5;
+            userScore = 0;
+            robotScore = 0;
+            gameTimesText.text = "你还有 " + gameTimes + " 次机会";
+            userWinTimesText.text = "胜 " + userScore +" 局" ;
+            robotWinTimesText.text = "胜 " + robotScore +" 局" ;
+            gameOver = false;
+            gameRunning = false;
+            gameSwitch = true;
+        }
+        else
+        {
+            return
+        }
+      },
+      shitouDOnClick:function(){
+        clickVoice.play();//点击音效
+        console.log('gameTimes is=>'+gameTimes);
+        console.log('gameSwitch is=>'+gameSwitch);
+        console.log('gameOver is=>'+gameOver);
+        console.log('gameRunning is=>'+gameRunning);
+        if(gameTimes > 0 && gameSwitch && gameOver != true && gameRunning != true){
+          console.log('shitouD on click');
+          gestrueDown.animations.stop(null, true);
+          gestrueDown.frame = 0;
+          this.iconAnimation();
+          this.refreshScore();
+          this.setRobot(0);
+          gameRunning = true;
+        }else if(gameTimes <=0){
+          console.log('game over');
+          this.gameOver();
+        }else{console.log('game end')}
+        
+      },
+       jiandaoDOnClick:function(){
+        clickVoice.play();//点击音效
+        if(gameTimes > 0 && gameSwitch && gameOver != true && gameRunning != true){
+          console.log('jiandaoD on click');
+          gestrueDown.animations.stop(null, true);
+          gestrueDown.frame = 1;
+          this.iconAnimation();
+          this.refreshScore();
+          this.setRobot(1);
+          gameRunning = true;
+        }else if(gameTimes <=0){
+          console.log('game over')
+          this.gameOver();
+        }else{return}
+      },
+       buDOnClick:function(){
+        clickVoice.play();//点击音效
+        if(gameTimes > 0 && gameSwitch && gameOver != true && gameRunning != true){
+          console.log('buD on click');
+          gestrueDown.animations.stop(null, true);
+          gestrueDown.frame = 2;
+          this.iconAnimation();
+          this.refreshScore();
+          this.setRobot(2);
+          gameRunning = true;
+        }else if(gameTimes <=0){
+          console.log('game over')
+          this.gameOver();
+        }else{return}
+        
+      },
+      randomNum:function(){
+        var minNum = 0;
+        var maxNum = 2;
+        return parseInt(Math.random()*(maxNum-minNum+1)+minNum,10); 
+      },
+      setRobot:function(player){
+        var randomNum = this.randomNum();
+        gestrueUp.animations.stop(null, true);
+        gestrueUp.frame = randomNum;
+        this.gameResult(player,randomNum);
+      },
+      gameResult:function(player,robot){
+        var that = this;
+        if(userScore>=3){
+          signinPopup.visible = true;
+          gameOver = true;
+        }else{
+        if(player === 0 && robot === 0){
+          setTimeout(function(){that.openTiePopup();},1000);
+        }else if(player === 1 && robot === 1){
+          setTimeout(function(){that.openTiePopup();},1000);
+        }else if(player === 2 && robot === 2){
+          setTimeout(function(){that.openTiePopup();},1000);
+        }else if(player === 1 && robot === 0){
+          setTimeout(function(){that.openLosePopup();},1000);
+          robotScore ++;
+        }else if(player === 0 && robot === 1){
+          setTimeout(function(){that.openWinPopup();},1000);
+          userScore++;
+        }else if(player === 0 && robot === 2){
+          setTimeout(function(){that.openLosePopup();},1000);
+          robotScore++;
+        }else if(player === 1 && robot === 0){
+          setTimeout(function(){that.openLosePopup();},1000);
+          robotScore++;
+        }else if(player === 1 && robot === 2){
+          setTimeout(function(){that.openWinPopup();},1000);
+          userScore++;
+        }else if(player === 2 && robot === 0){
+          setTimeout(function(){that.openWinPopup();},1000);
+          userScore++;
+        }else if(player === 2 && robot === 1){
+          setTimeout(function(){that.openLosePopup();},1000);
+          robotScore++;
+        }
+        }
+      }
+
+  	}
+  	function openWindow() {
+
+    if ((tween !== null && tween.isRunning) || popup.scale.x === 1)
+    {
+        return;
+    }
+    
+    //  Create a tween that will pop-open the window, but only if it's not already tweening or open
+    tween = game.add.tween(popup.scale).to( { x: 1, y: 1 }, 1000, Phaser.Easing.Elastic.Out, true);
+
+}
+
+function closeWindow() {
+
+    if (tween && tween.isRunning || popup.scale.x === 0.1)
+    {
+        return;
+    }
+
+    //  Create a tween that will close the window, but only if it's not already tweening or closed
+    tween = game.add.tween(popup.scale).to( { x: 0.1, y: 0.1 }, 500, Phaser.Easing.Elastic.In, true);
+
+}
+  	game.state.add('boot',game.Mystates.boot);
+  	game.state.add('load',game.Mystates.load);
+  	game.state.add('start',game.Mystates.start);
+  	game.state.add('play',game.Mystates.play);
+  	game.state.start('boot');
+	</script>
+</body>
+</html>
